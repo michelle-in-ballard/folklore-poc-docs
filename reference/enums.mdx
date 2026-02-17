@@ -1,0 +1,100 @@
+---
+title: "Enums"
+description: "Complete reference for all enum types in the Device Settings module."
+---
+
+## SettingCategory
+
+Categorizes device settings by domain. Used in queries, update requests, and list operations.
+
+```typescript
+export enum SettingCategory {
+  DISPLAY       = 0,
+  AUDIO         = 1,
+  NETWORK       = 2,
+  ACCESSIBILITY = 3,
+  POWER         = 4,
+  SYSTEM        = 5,
+  INPUT         = 6,
+  PRIVACY       = 7,
+}
+```
+
+<AccordionGroup>
+  <Accordion title="DISPLAY (0)">
+    Display-related settings such as brightness, resolution, HDR mode, and color temperature.
+  </Accordion>
+  <Accordion title="AUDIO (1)">
+    Audio-related settings such as volume, output mode, equalizer, and surround sound configuration.
+  </Accordion>
+  <Accordion title="NETWORK (2)">
+    Network-related settings such as Wi-Fi, Ethernet, proxy, and DNS configuration.
+  </Accordion>
+  <Accordion title="ACCESSIBILITY (3)">
+    Accessibility settings such as screen reader, magnification, and closed captions.
+  </Accordion>
+  <Accordion title="POWER (4)">
+    Power management settings such as sleep timer, standby mode, and wake-on-LAN.
+  </Accordion>
+  <Accordion title="SYSTEM (5)">
+    System-level settings such as language, timezone, and software update preferences.
+  </Accordion>
+  <Accordion title="INPUT (6)">
+    Input-related settings such as remote control mapping, CEC control, and Bluetooth pairing.
+  </Accordion>
+  <Accordion title="PRIVACY (7)">
+    Privacy and security settings such as parental controls, data sharing, and usage analytics.
+  </Accordion>
+</AccordionGroup>
+
+## SettingValueType
+
+Describes the data type of a setting value. Used in responses and setting entries.
+
+```typescript
+export enum SettingValueType {
+  STRING  = 0,
+  INTEGER = 1,
+  FLOAT   = 2,
+  BOOLEAN = 3,
+  ENUM    = 4,
+  RANGE   = 5,
+}
+```
+
+| Value | Name | Description | Constraints |
+|-------|------|-------------|-------------|
+| `0` | `STRING` | Free-form text | None |
+| `1` | `INTEGER` | Whole number | `minValue`, `maxValue`, `stepValue` |
+| `2` | `FLOAT` | Decimal number | `minValue`, `maxValue`, `stepValue` |
+| `3` | `BOOLEAN` | True/false | None |
+| `4` | `ENUM` | One of a set | `allowedValues` |
+| `5` | `RANGE` | Numeric range | `minValue`, `maxValue`, `stepValue` |
+
+<Tip>
+  When returning settings of type `ENUM` or `RANGE`, include `ISettingConstraints` in the `ISettingEntry` to describe the valid values.
+</Tip>
+
+## UpdateResultStatus
+
+Status codes returned after attempting to update a device setting.
+
+```typescript
+export enum UpdateResultStatus {
+  SUCCESS           = 0,
+  KEY_NOT_FOUND     = 1,
+  INVALID_VALUE     = 2,
+  PERMISSION_DENIED = 3,
+  DEVICE_LOCKED     = 4,
+  INTERNAL_FAILURE  = 5,
+}
+```
+
+| Value | Name | When to use |
+|-------|------|-------------|
+| `0` | `SUCCESS` | The setting was updated successfully |
+| `1` | `KEY_NOT_FOUND` | The requested setting key does not exist |
+| `2` | `INVALID_VALUE` | The provided value fails validation |
+| `3` | `PERMISSION_DENIED` | The caller lacks permission to modify this setting |
+| `4` | `DEVICE_LOCKED` | The device is in a locked state and cannot accept changes |
+| `5` | `INTERNAL_FAILURE` | An unexpected internal error occurred |

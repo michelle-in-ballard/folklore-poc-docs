@@ -1,0 +1,82 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "Folklore Device Settings",
+  "description": "Technical documentation for the FolkloreScript-DeviceSettings turbo-module package on Folklore OS.",
+  "colors": {
+    "primary": "#6366F1",
+    "light": "#818CF8",
+    "dark": "#4338CA"
+  },
+  "favicon": "/favicon.png",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "href": "/",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "architecture"
+            ]
+          },
+          {
+            "group": "TypeScript API",
+            "pages": [
+              "api/device-settings",
+              "api/server-component",
+              "api/turbo-module-spec",
+              "api/internal-types"
+            ]
+          },
+          {
+            "group": "Native Layer",
+            "pages": [
+              "native/cpp-implementation",
+              "native/autolink",
+              "native/build-config"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/handler-implementation",
+              "guides/component-scoped-handlers",
+              "guides/error-handling"
+            ]
+          },
+          {
+            "group": "Reference",
+            "pages": [
+              "reference/enums",
+              "reference/interfaces",
+              "reference/errors"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "type": "github",
+        "href": "https://github.com/michelle-in-ballard/folklore-poc"
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/michelle-in-ballard/folklore-poc"
+    }
+  },
+  "contextual": {
+    "options": [
+      "copy",
+      "view"
+    ]
+  }
+}

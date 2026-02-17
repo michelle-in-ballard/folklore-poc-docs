@@ -1,0 +1,150 @@
+---
+title: "C++ Implementation"
+description: "Native turbo-module implementation that bridges JavaScript callbacks with APMF device settings interfaces."
+---
+
+Source: `folklore/turbo-modules/FolkloreScriptDeviceSettings.h` and `FolkloreScriptDeviceSettings.cpp`
+
+The native C++ layer is responsible for integrating with the APMF (Amazon Platform Middleware Framework) device settings interfaces and bridging them to the JavaScript callbacks registered from TypeScript.
+
+## Class overview
+
+```cpp
+namespace com::amazon::folklore::turbomodule {
+
+class FolkloreScriptDeviceSettings
+    : public FolkloreTurboModule {
+public:
+    FolkloreScriptDeviceSettings();
+
+    // Method registration
+    void aggregateMethods(MethodAggregator<FolkloreTurboModule>& methodAggregator) const noexcept;
+
+    // Version info
+    int32_t getMajorVersion();
+    int32_t getMinorVersion();
+    int32_t getPatchVersion();
+
+    // Server setup
+    Promise setupDeviceSettingsServer();
+
+    // Handler registration
+    Promise setGetSettingHandler(Callback handler);
+    Promise setUpdateSettingHandler(Callback handler);
+    Promise setListSettingsHandler(Callback handler);
+    Promise setHandlersForComponent(Callback get, Callback update, Callback list, NativeJSObject component);
+
+    // Response routing
+    Promise handleGetSettingResponse(uint32_t transactionId, NativeJSObject responseJson);
+    Promise handleUpdateSettingResponse(uint32_t transactionId, NativeJSObject resultJson);
+    Promise handleListSettingsResponse(uint32_t transactionId, NativeJSArray entriesJson);
+
+    // Listener registration (called by handler structs)
+    uint32_t registerSettingResponseListener(View<ISettingResponseListener> listener);
+    uint32_t registerUpdateResultListener(View<IUpdateResultListener> listener);
+    uint32_t registerListSettingsResultListener(View<IListSettingsResultListener> listener);
+};
+
+}
+```
+
+## Type conversion functions
+
+The implementation includes several conversion functions that translate between APMF objects and `NativeJSObject` (JSON-like) representations:
+
+| Function | Direction | Purpose |
+|----------|-----------|---------|
+| `SettingQueryJsonFromApmf` | APMF → JSON | Converts a setting query for JS consumption |
+| `UpdateRequestJsonFromApmf` | APMF → JSON | Converts an update request for JS consumption |
+| `FilterJsonFromApmf` | APMF → JSON | Converts a setting filter for JS consumption |
+| `SettingMetadataJsonFromApmf` | APMF → JSON | Converts metadata tags |
+| `UpdateOptionsJsonFromApmf` | APMF → JSON | Converts update options |
+| `SettingResponseFromJson` | JSON → APMF | Deserializes a JS response into an APMF object |
+| `UpdateResultFromJson` | JSON → APMF | Deserializes a JS result into an APMF object |
+| `UpdateResultStatusFromJson` | JSON → Enum | Maps numeric status to `UpdateResultStatus` enum |
+| `SettingValueTypeFromJson` | JSON → Enum | Maps numeric type to `SettingValueType` enum |
+
+## APMF handler structs
+
+Three handler structs bridge APMF callbacks to JavaScript:
+
+<AccordionGroup>
+  <Accordion title="DeviceSettingsGetHandlerAsync">
+    Receives `handleGetSetting` calls from the APMF layer. Registers the response listener, assigns a transaction ID, and invokes the JS callback with the serialized query.
+
+    ```cpp
+    void handleGetSetting(
+        View<ISettingQuery> query,
+        View<ISettingResponseListener> responseListener) {
+        uint32_t txnId = m_parent->registerSettingResponseListener(responseListener);
+        m_getHandler.invoke(txnId, SettingQueryJsonFromApmf(query));
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="DeviceSettingsUpdateHandlerAsync">
+    Receives `handleUpdateSetting` calls. Same pattern — registers the result listener and invokes the JS callback with the serialized update request.
+
+    ```cpp
+    void handleUpdateSetting(
+        View<ISettingUpdateRequest> request,
+        View<IUpdateResultListener> resultListener) {
+        uint32_t txnId = m_parent->registerUpdateResultListener(resultListener);
+        m_updateHandler.invoke(txnId, UpdateRequestJsonFromApmf(request));
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="DeviceSettingsListHandlerAsync">
+    Receives `handleListSettings` calls. Handles the optional filter parameter (passes `nullptr` to JS if no filter is provided).
+
+    ```cpp
+    void handleListSettings(
+        SettingCategory category,
+        View<ISettingFilter> filter,
+        View<IListSettingsResultListener> resultListener) {
+        uint32_t txnId = m_parent->registerListSettingsResultListener(resultListener);
+        if (filter) {
+            m_listHandler.invoke(txnId, static_cast<double>(category), FilterJsonFromApmf(filter));
+        } else {
+            m_listHandler.invoke(txnId, static_cast<double>(category), nullptr);
+        }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Promise helpers
+
+The implementation uses two helper functions for consistent promise resolution:
+
+```cpp
+void resolvePromise(shared_ptr<Promise> promise) {
+    auto result = JsonContainer::createJsonObject();
+    result.insert("isSuccess", true);
+    promise->resolve(result);
+}
+
+void rejectPromise(shared_ptr<Promise> promise, int errorCode, const string& errorString) {
+    auto result = JsonContainer::createJsonObject();
+    result.insert("isSuccess", false);
+    result.insert("errorCode", errorCode);
+    result.insert("errorMessage", errorString);
+    promise->resolve(result);
+}
+```
+
+<Note>
+  Both success and failure cases use `promise->resolve()`. The TypeScript layer checks the `isSuccess` field to determine the outcome and throws `DeviceSettingsInternalError` on failure.
+</Note>
+
+## Private members
+
+| Member | Type | Purpose |
+|--------|------|---------|
+| `m_settingsServer` | `Ptr<IDeviceSettingsServerAsync>` | The APMF server instance |
+| `m_serverComponent` | `Ptr<IDeviceSettingsServerComponentAsync>` | The APMF component factory |
+| `m_transactionId` | `atomic<uint32_t>` | Monotonically increasing transaction counter |
+| `m_settingResponseListeners` | `unordered_map<uint32_t, Ptr<ISettingResponseListener>>` | Pending get-setting listeners |
+| `m_updateResultListeners` | `unordered_map<uint32_t, Ptr<IUpdateResultListener>>` | Pending update-setting listeners |
+| `m_listSettingsResultListeners` | `unordered_map<uint32_t, Ptr<IListSettingsResultListener>>` | Pending list-settings listeners |

@@ -1,0 +1,157 @@
+---
+title: "Interfaces"
+description: "Complete reference for all public interfaces in the Device Settings module."
+---
+
+## Server interfaces
+
+### IDeviceSettingsServer
+
+The server interface for registering handlers.
+
+```typescript
+export interface IDeviceSettingsServer {
+  setHandler(handler: IDeviceSettingsHandler): void;
+  setHandlerForComponent(
+    handler: IDeviceSettingsHandler,
+    instance: IComponentInstance,
+  ): void;
+}
+```
+
+### IDeviceSettingsHandler
+
+The handler interface that applications implement.
+
+```typescript
+export interface IDeviceSettingsHandler {
+  handleGetSetting(query: ISettingQuery): Promise<ISettingResponse>;
+  handleUpdateSetting(request: ISettingUpdateRequest): Promise<IUpdateResult>;
+  handleListSettings(
+    category: SettingCategory,
+    filter: ISettingFilter | null,
+  ): Promise<ISettingEntry[]>;
+}
+```
+
+## Query interfaces
+
+### ISettingQuery
+
+```typescript
+export interface ISettingQuery {
+  getKey(): string;
+  getCategory(): SettingCategory;
+  getMetadataTags(): ISettingMetadata[];
+}
+```
+
+### ISettingMetadata
+
+```typescript
+export interface ISettingMetadata {
+  getName(): string;
+  getValue(): string;
+}
+```
+
+### ISettingFilter
+
+```typescript
+export interface ISettingFilter {
+  getKeyPrefix(): string | null;
+  getValueTypes(): SettingValueType[];
+  getIncludeReadOnly(): boolean;
+}
+```
+
+## Request interfaces
+
+### ISettingUpdateRequest
+
+```typescript
+export interface ISettingUpdateRequest {
+  getKey(): string;
+  getNewValue(): string;
+  getCategory(): SettingCategory;
+  getUpdateOptions(): IUpdateOptions | null;
+}
+```
+
+### IUpdateOptions
+
+```typescript
+export interface IUpdateOptions {
+  getPersistAcrossReboot(): boolean;
+  getNotifyListeners(): boolean;
+  getChangeReason(): string | null;
+}
+```
+
+## Response interfaces
+
+### ISettingResponse
+
+```typescript
+export interface ISettingResponse {
+  getKey(): string;
+  getCurrentValue(): string;
+  getValueType(): SettingValueType;
+  isReadOnly(): boolean;
+}
+```
+
+### IUpdateResult
+
+```typescript
+export interface IUpdateResult {
+  getStatus(): UpdateResultStatus;
+  getMessage(): string;
+}
+```
+
+### IUpdateResultBuilder
+
+```typescript
+export interface IUpdateResultBuilder {
+  updateStatus(status: UpdateResultStatus): IUpdateResultBuilder;
+  detailMessage(message: string): IUpdateResultBuilder;
+  build(): IUpdateResult;
+}
+```
+
+<Note>
+  `build()` throws `SettingsValidationError` if `updateStatus()` has not been called. The detail message has a maximum length of 8192 characters.
+</Note>
+
+## Entry interfaces
+
+### ISettingEntry
+
+```typescript
+export interface ISettingEntry {
+  getKey(): string;
+  getDisplayName(): string;
+  getCurrentValue(): string;
+  getDefaultValue(): string;
+  getValueType(): SettingValueType;
+  getCategory(): SettingCategory;
+  isReadOnly(): boolean;
+  getConstraints(): ISettingConstraints | null;
+}
+```
+
+### ISettingConstraints
+
+```typescript
+export interface ISettingConstraints {
+  getMinValue(): number | null;
+  getMaxValue(): number | null;
+  getStepValue(): number | null;
+  getAllowedValues(): string[];
+}
+```
+
+<Tip>
+  Use `ISettingConstraints` to describe valid value ranges for `RANGE` and `ENUM` type settings. For `RANGE`, provide `minValue`, `maxValue`, and optionally `stepValue`. For `ENUM`, provide `allowedValues`.
+</Tip>

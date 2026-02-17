@@ -1,0 +1,146 @@
+---
+title: "Implementing a Handler"
+description: "Step-by-step guide to implementing the IDeviceSettingsHandler interface."
+---
+
+Your application must implement the `IDeviceSettingsHandler` interface with three async methods. This guide walks through each one with practical examples.
+
+## handleGetSetting
+
+Called when the platform requests the current value of a specific setting.
+
+```typescript
+async handleGetSetting(query: ISettingQuery): Promise<ISettingResponse> {
+  const key = query.getKey();
+  const category = query.getCategory();
+  const tags = query.getMetadataTags();
+
+  // Look up the setting in your data store
+  const setting = mySettingsStore.get(key);
+
+  if (!setting) {
+    throw new SettingNotFoundError(`Setting not found: ${key}`);
+  }
+
+  return myResponseFactory.create(
+    key,
+    setting.value,
+    setting.valueType,
+    setting.readOnly,
+  );
+}
+```
+
+<Tip>
+  The `ISettingQuery` includes metadata tags that can carry additional context from the platform. Check `query.getMetadataTags()` for any tags your application needs to handle.
+</Tip>
+
+## handleUpdateSetting
+
+Called when the platform requests a change to a setting value.
+
+```typescript
+async handleUpdateSetting(request: ISettingUpdateRequest): Promise<IUpdateResult> {
+  const key = request.getKey();
+  const newValue = request.getNewValue();
+  const category = request.getCategory();
+  const options = request.getUpdateOptions();
+
+  // Validate the new value
+  if (!isValidValue(key, newValue)) {
+    return component.makeUpdateResultBuilder()
+      .updateStatus(UpdateResultStatus.INVALID_VALUE)
+      .detailMessage(`Invalid value "${newValue}" for setting: ${key}`)
+      .build();
+  }
+
+  // Apply the change
+  mySettingsStore.update(key, newValue);
+
+  // Respect update options
+  if (options) {
+    if (options.getPersistAcrossReboot()) {
+      mySettingsStore.persist(key);
+    }
+    if (options.getNotifyListeners()) {
+      myEventBus.emit('setting-changed', { key, newValue });
+    }
+  }
+
+  return component.makeUpdateResultBuilder()
+    .updateStatus(UpdateResultStatus.SUCCESS)
+    .build();
+}
+```
+
+### Update result status codes
+
+Use the appropriate status code to communicate the outcome:
+
+| Status | When to use |
+|--------|-------------|
+| `SUCCESS` | Setting was updated successfully |
+| `KEY_NOT_FOUND` | The setting key doesn't exist |
+| `INVALID_VALUE` | The value fails validation (out of range, wrong type, etc.) |
+| `PERMISSION_DENIED` | The caller lacks permission to modify this setting |
+| `DEVICE_LOCKED` | The device is in a locked state |
+| `INTERNAL_FAILURE` | An unexpected error occurred in your handler |
+
+<Warning>
+  The detail message on `IUpdateResultBuilder` has a maximum length of 8192 characters. Exceeding this throws `SettingsValidationError`.
+</Warning>
+
+## handleListSettings
+
+Called when the platform requests all settings in a given category.
+
+```typescript
+async handleListSettings(
+  category: SettingCategory,
+  filter: ISettingFilter | null,
+): Promise<ISettingEntry[]> {
+  // Get all settings for the category
+  let settings = mySettingsStore.getByCategory(category);
+
+  // Apply filter if provided
+  if (filter) {
+    const prefix = filter.getKeyPrefix();
+    if (prefix) {
+      settings = settings.filter(s => s.key.startsWith(prefix));
+    }
+
+    const valueTypes = filter.getValueTypes();
+    if (valueTypes.length > 0) {
+      settings = settings.filter(s => valueTypes.includes(s.valueType));
+    }
+
+    if (!filter.getIncludeReadOnly()) {
+      settings = settings.filter(s => !s.readOnly);
+    }
+  }
+
+  return settings.map(s => myEntryFactory.create(s));
+}
+```
+
+### Filter behavior
+
+The `ISettingFilter` has three optional criteria that should be applied together (AND logic):
+
+<AccordionGroup>
+  <Accordion title="Key prefix filter">
+    When `getKeyPrefix()` returns a non-null string, only return settings whose key starts with that prefix.
+
+    Example: prefix `"display."` matches `"display.brightness"`, `"display.resolution"`, etc.
+  </Accordion>
+
+  <Accordion title="Value type filter">
+    When `getValueTypes()` returns a non-empty array, only return settings whose value type is in the array.
+
+    Example: `[SettingValueType.BOOLEAN, SettingValueType.ENUM]` returns only boolean and enum settings.
+  </Accordion>
+
+  <Accordion title="Read-only filter">
+    When `getIncludeReadOnly()` returns `false`, exclude all read-only settings from the results.
+  </Accordion>
+</AccordionGroup>

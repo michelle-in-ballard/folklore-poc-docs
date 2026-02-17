@@ -1,0 +1,56 @@
+---
+title: "Introduction"
+description: "Overview of the FolkloreScript-DeviceSettings turbo-module for Folklore OS."
+---
+
+The `@amzn/folklore-device-settings-manager` package provides a TypeScript API for Folklore OS applications to read, write, and list device-level settings. It follows the Folklore turbo-module pattern with a server/handler architecture where the platform sends requests and the application responds asynchronously.
+
+## What it does
+
+<Columns cols={3}>
+  <Card title="Read Settings" icon="eye">
+    Query individual device settings by key and category, with metadata tag support.
+  </Card>
+  <Card title="Write Settings" icon="pen">
+    Update setting values with persistence options, listener notifications, and change tracking.
+  </Card>
+  <Card title="List Settings" icon="list">
+    Enumerate all settings in a category with filtering by key prefix, value type, and read-only status.
+  </Card>
+</Columns>
+
+## Setting categories
+
+The module organizes settings into eight categories covering the full device configuration surface:
+
+| Category | Examples |
+|----------|----------|
+| `DISPLAY` | Brightness, resolution, HDR, color temperature |
+| `AUDIO` | Volume, output mode, equalizer, surround sound |
+| `NETWORK` | Wi-Fi, Ethernet, proxy, DNS |
+| `ACCESSIBILITY` | Screen reader, magnification, closed captions |
+| `POWER` | Sleep timer, standby mode, wake-on-LAN |
+| `SYSTEM` | Language, timezone, software update preferences |
+| `INPUT` | Remote mapping, CEC control, Bluetooth pairing |
+| `PRIVACY` | Parental controls, data sharing, usage analytics |
+
+## Package structure
+
+```
+FolkloreScript-DeviceSettings/
+├── src/
+│   ├── index.ts                          # Public barrel export
+│   └── turbo-modules/
+│       ├── DeviceSettings.ts             # Public API types, interfaces, enums
+│       ├── DeviceSettingsServerComponent.ts  # Factory and concrete implementations
+│       ├── FolkloreScriptDeviceSettings.ts   # TurboModule native bridge spec
+│       └── InternalTypes.ts              # Internal wire types for native comms
+├── folklore/
+│   ├── AutoLinkInit.cpp                  # Module registration
+│   └── turbo-modules/
+│       ├── FolkloreScriptDeviceSettings.h    # C++ header
+│       └── FolkloreScriptDeviceSettings.cpp  # C++ implementation
+├── CMakeLists.txt                        # Native build config
+├── Config                                # Brazil package config
+└── package.json                          # NPM package manifest
+```

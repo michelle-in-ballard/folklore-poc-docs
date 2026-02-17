@@ -1,0 +1,90 @@
+---
+title: "TurboModule Specification"
+description: "The native bridge interface between TypeScript and C++ for device settings operations."
+---
+
+Source: `src/turbo-modules/FolkloreScriptDeviceSettings.ts`
+
+This file defines the `FolkloreScriptDeviceSettings` interface — the TurboModule specification that declares the native methods available from the C++ implementation. It is registered with the `TurboModuleRegistry` and provides the bridge between JavaScript and native code.
+
+## Module registration
+
+```typescript
+export default TurboModuleRegistry.getEnforcing<FolkloreScriptDeviceSettings>(
+  'FolkloreDeviceSettingsManager',
+) as FolkloreScriptDeviceSettings;
+```
+
+The module is registered under the name `FolkloreDeviceSettingsManager`, which must match the name used in `AutoLinkInit.cpp` on the native side.
+
+## Interface definition
+
+The `FolkloreScriptDeviceSettings` interface extends `FolkloreTurboModule` and declares the following methods:
+
+### Server setup
+
+<ResponseField name="setupDeviceSettingsServer()" type="Promise<Object>" required>
+  Initializes the native `DeviceSettingsServer` component. Returns an object with `isSuccess` and optional `errorCode`/`errorMessage` fields.
+</ResponseField>
+
+### Handler registration
+
+<ResponseField name="setGetSettingHandler(handler)" type="Promise<Object>" required>
+  Registers a callback to receive setting read requests. The callback receives `(transactionId: number, query: IInternalSettingQuery)`.
+</ResponseField>
+
+<ResponseField name="setUpdateSettingHandler(handler)" type="Promise<Object>" required>
+  Registers a callback to receive setting update requests. The callback receives `(transactionId: number, request: IInternalSettingUpdateRequest)`.
+</ResponseField>
+
+<ResponseField name="setListSettingsHandler(handler)" type="Promise<Object>" required>
+  Registers a callback to receive list-settings requests. The callback receives `(transactionId: number, category: number, filter: IInternalSettingFilter | null)`.
+</ResponseField>
+
+<ResponseField name="setHandlersForComponent(...)" type="Promise<Object>" required>
+  Registers all three handlers scoped to a specific component instance. Accepts `getHandler`, `updateHandler`, `listHandler`, and `componentInstance` parameters.
+</ResponseField>
+
+### Response methods
+
+These methods send responses back to the native layer, keyed by transaction ID:
+
+<ResponseField name="handleGetSettingResponse(transactionId, response)" type="void" required>
+  Sends a setting response back to the native listener identified by `transactionId`.
+</ResponseField>
+
+<ResponseField name="handleUpdateSettingResponse(transactionId, result)" type="void" required>
+  Sends an update result back to the native listener identified by `transactionId`.
+</ResponseField>
+
+<ResponseField name="handleListSettingsResponse(transactionId, entries)" type="void" required>
+  Sends a list of setting entries back to the native listener identified by `transactionId`.
+</ResponseField>
+
+### Version methods
+
+<ResponseField name="getMajorVersion()" type="number">
+  Returns the major version from the native module.
+</ResponseField>
+
+<ResponseField name="getMinorVersion()" type="number">
+  Returns the minor version from the native module.
+</ResponseField>
+
+<ResponseField name="getPatchVersion()" type="number">
+  Returns the patch version from the native module.
+</ResponseField>
+
+## Data flow
+
+<Note>
+  Application code should not interact with this interface directly. Use `DeviceSettingsServerComponent` instead, which wraps these native calls with type-safe public interfaces.
+</Note>
+
+```mermaid
+graph LR
+    A[Your Handler] --> B[DeviceSettingsServerComponent]
+    B --> C[FolkloreScriptDeviceSettings]
+    C --> D[Native C++ Module]
+    D --> E[APMF Platform]
+```

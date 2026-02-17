@@ -1,0 +1,124 @@
+---
+title: "Quickstart"
+description: "Get up and running with the Device Settings turbo-module in under 5 minutes."
+---
+
+<Steps>
+  <Step title="Install the package">
+    Add the dependency to your Folklore OS application:
+
+    ```json package.json
+    {
+      "dependencies": {
+        "@amzn/folklore-device-settings-manager": "^1.0.0"
+      }
+    }
+    ```
+  </Step>
+
+  <Step title="Create the server">
+    Import the server component and obtain the singleton server instance:
+
+    ```typescript
+    import {
+      DeviceSettingsServerComponent,
+    } from '@amzn/folklore-device-settings-manager';
+
+    const component = new DeviceSettingsServerComponent();
+    const server = component.getOrMakeServer();
+    ```
+
+    <Tip>
+      `getOrMakeServer()` is idempotent. It creates the native server on the first call and returns the same instance on subsequent calls.
+    </Tip>
+  </Step>
+
+  <Step title="Implement your handler">
+    Create an object that implements `IDeviceSettingsHandler`:
+
+    ```typescript
+    import {
+      IDeviceSettingsHandler,
+      ISettingQuery,
+      ISettingResponse,
+      ISettingUpdateRequest,
+      IUpdateResult,
+      ISettingEntry,
+      SettingCategory,
+      ISettingFilter,
+      UpdateResultStatus,
+    } from '@amzn/folklore-device-settings-manager';
+
+    const handler: IDeviceSettingsHandler = {
+      async handleGetSetting(query: ISettingQuery): Promise<ISettingResponse> {
+        // Return the current value for the requested setting key
+      },
+
+      async handleUpdateSetting(request: ISettingUpdateRequest): Promise<IUpdateResult> {
+        const builder = component.makeUpdateResultBuilder();
+        return builder.updateStatus(UpdateResultStatus.SUCCESS).build();
+      },
+
+      async handleListSettings(
+        category: SettingCategory,
+        filter: ISettingFilter | null,
+      ): Promise<ISettingEntry[]> {
+        // Return all settings matching the category and filter
+        return [];
+      },
+    };
+    ```
+  </Step>
+
+  <Step title="Register the handler">
+    Bind your handler to the server so it receives platform requests:
+
+    ```typescript
+    server.setHandler(handler);
+    ```
+
+    <Info>
+      For component-scoped handlers, use `server.setHandlerForComponent(handler, componentInstance)` instead. See the [Component-Scoped Handlers](/guides/component-scoped-handlers) guide.
+    </Info>
+  </Step>
+</Steps>
+
+## Full example
+
+```typescript app.ts
+import {
+  DeviceSettingsServerComponent,
+  IDeviceSettingsHandler,
+  ISettingQuery,
+  ISettingResponse,
+  ISettingUpdateRequest,
+  IUpdateResult,
+  ISettingEntry,
+  SettingCategory,
+  ISettingFilter,
+  UpdateResultStatus,
+} from '@amzn/folklore-device-settings-manager';
+
+const component = new DeviceSettingsServerComponent();
+const server = component.getOrMakeServer();
+
+const handler: IDeviceSettingsHandler = {
+  async handleGetSetting(query: ISettingQuery): Promise<ISettingResponse> {
+    // Look up the setting and return a response
+  },
+
+  async handleUpdateSetting(request: ISettingUpdateRequest): Promise<IUpdateResult> {
+    const builder = component.makeUpdateResultBuilder();
+    return builder.updateStatus(UpdateResultStatus.SUCCESS).build();
+  },
+
+  async handleListSettings(
+    category: SettingCategory,
+    filter: ISettingFilter | null,
+  ): Promise<ISettingEntry[]> {
+    return [];
+  },
+};
+
+server.setHandler(handler);
+```

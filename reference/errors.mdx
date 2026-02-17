@@ -1,0 +1,99 @@
+---
+title: "Error Classes"
+description: "Reference for all error classes exported by the Device Settings module."
+---
+
+All error classes extend the standard JavaScript `Error` class and set their prototype correctly for `instanceof` checks.
+
+## SettingsValidationError
+
+Thrown when input validation fails.
+
+```typescript
+export class SettingsValidationError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    Object.setPrototypeOf(this, SettingsValidationError.prototype);
+  }
+}
+```
+
+### Thrown by
+
+| Location | Condition |
+|----------|-----------|
+| `UpdateResultBuilder.build()` | `updateStatus()` was not called before `build()` |
+| `UpdateResultBuilder.build()` | Detail message exceeds 8192 characters |
+| `DeviceSettingsServer.setHandlerForComponent()` | Component instance is `null` or `undefined` |
+
+### Example
+
+```typescript
+import { SettingsValidationError } from '@amzn/folklore-device-settings-manager';
+
+try {
+  const result = component.makeUpdateResultBuilder().build();
+} catch (e) {
+  if (e instanceof SettingsValidationError) {
+    // "Status is required"
+  }
+}
+```
+
+## SettingNotFoundError
+
+Available for handler implementations to throw when a setting key doesn't exist. Not thrown by the module itself.
+
+```typescript
+export class SettingNotFoundError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    Object.setPrototypeOf(this, SettingNotFoundError.prototype);
+  }
+}
+```
+
+### Example
+
+```typescript
+import { SettingNotFoundError } from '@amzn/folklore-device-settings-manager';
+
+async handleGetSetting(query: ISettingQuery): Promise<ISettingResponse> {
+  const setting = store.get(query.getKey());
+  if (!setting) {
+    throw new SettingNotFoundError(`Unknown setting: ${query.getKey()}`);
+  }
+  // ...
+}
+```
+
+## DeviceSettingsInternalError
+
+Thrown when the native layer fails to initialize or communicate.
+
+```typescript
+export class DeviceSettingsInternalError extends Error {
+  constructor(msg: string) {
+    super(msg);
+    Object.setPrototypeOf(this, DeviceSettingsInternalError.prototype);
+  }
+}
+```
+
+### Thrown by
+
+| Location | Condition |
+|----------|-----------|
+| `DeviceSettingsServerComponent.getOrMakeServer()` | Native server component failed to initialize |
+| `DeviceSettingsServerComponent.getOrMakeServer()` | APMF component not found at `/com.amazon.folklore.device.settings` |
+
+### Native error codes
+
+The native C++ layer includes an error code in the rejection payload:
+
+| Code | Constant | Meaning |
+|------|----------|---------|
+| `1` | `INTERNAL_ERROR` | Platform or communication failure |
+| `2` | `VALIDATION_ERROR` | Native-side input validation failed |
+
+The error message format is: `"<context>, error=<native error message>"`

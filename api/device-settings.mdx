@@ -1,0 +1,283 @@
+---
+title: "DeviceSettings.ts"
+description: "Public API types, interfaces, enums, and error classes for the Device Settings turbo-module."
+---
+
+This is the primary public API surface of the package. It defines all the types that application developers interact with when implementing a device settings handler.
+
+Source: `src/turbo-modules/DeviceSettings.ts`
+
+## Error classes
+
+<AccordionGroup>
+  <Accordion title="SettingsValidationError" icon="triangle-exclamation">
+    Thrown when a setting key or value fails validation, such as calling `build()` on an `IUpdateResultBuilder` without setting a status, or when the detail message exceeds the 8192 character limit.
+
+    ```typescript
+    export class SettingsValidationError extends Error {
+      constructor(msg: string);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SettingNotFoundError" icon="magnifying-glass">
+    Thrown when a requested setting is not found on the device. Available for handler implementations to throw when a key doesn't exist.
+
+    ```typescript
+    export class SettingNotFoundError extends Error {
+      constructor(msg: string);
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="DeviceSettingsInternalError" icon="gear">
+    Thrown when an internal setup or communication failure occurs between the TypeScript and native layers.
+
+    ```typescript
+    export class DeviceSettingsInternalError extends Error {
+      constructor(msg: string);
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Enums
+
+### SettingCategory
+
+Categorizes device settings by domain.
+
+| Value | Name | Description |
+|-------|------|-------------|
+| `0` | `DISPLAY` | Brightness, resolution, HDR mode |
+| `1` | `AUDIO` | Volume, output mode, equalizer |
+| `2` | `NETWORK` | Wi-Fi, Ethernet, proxy |
+| `3` | `ACCESSIBILITY` | Screen reader, magnification, captions |
+| `4` | `POWER` | Sleep timer, standby mode |
+| `5` | `SYSTEM` | Language, timezone, software update |
+| `6` | `INPUT` | Remote control mapping, CEC control |
+| `7` | `PRIVACY` | Parental controls, data sharing |
+
+### SettingValueType
+
+Describes the data type of a setting value.
+
+| Value | Name | Description |
+|-------|------|-------------|
+| `0` | `STRING` | Free-form text value |
+| `1` | `INTEGER` | Whole number value |
+| `2` | `FLOAT` | Decimal number value |
+| `3` | `BOOLEAN` | True/false value |
+| `4` | `ENUM` | One of a set of allowed values |
+| `5` | `RANGE` | Numeric value within min/max bounds |
+
+### UpdateResultStatus
+
+Status codes returned after attempting to update a device setting.
+
+| Value | Name | Description |
+|-------|------|-------------|
+| `0` | `SUCCESS` | Setting was updated successfully |
+| `1` | `KEY_NOT_FOUND` | The requested setting key does not exist |
+| `2` | `INVALID_VALUE` | The provided value is not valid for this setting |
+| `3` | `PERMISSION_DENIED` | Caller lacks permission to modify this setting |
+| `4` | `DEVICE_LOCKED` | Device is in a locked state and cannot accept changes |
+| `5` | `INTERNAL_FAILURE` | An unexpected internal error occurred |
+
+## Core interfaces
+
+### IDeviceSettingsServer
+
+Server interface for registering handlers that respond to platform requests.
+
+<ResponseField name="setHandler" type="(handler: IDeviceSettingsHandler) => void" required>
+  Registers a global handler for all device settings operations.
+</ResponseField>
+
+<ResponseField name="setHandlerForComponent" type="(handler: IDeviceSettingsHandler, instance: IComponentInstance) => void" required>
+  Registers a handler scoped to a specific component instance.
+</ResponseField>
+
+### IDeviceSettingsHandler
+
+Handler interface that applications implement to respond to device settings queries and update requests.
+
+<ResponseField name="handleGetSetting" type="(query: ISettingQuery) => Promise<ISettingResponse>" required>
+  Called when the platform requests the current value of a specific setting.
+</ResponseField>
+
+<ResponseField name="handleUpdateSetting" type="(request: ISettingUpdateRequest) => Promise<IUpdateResult>" required>
+  Called when the platform requests a change to a setting value.
+</ResponseField>
+
+<ResponseField name="handleListSettings" type="(category: SettingCategory, filter: ISettingFilter | null) => Promise<ISettingEntry[]>" required>
+  Called when the platform requests all settings in a given category.
+</ResponseField>
+
+## Query and response interfaces
+
+### ISettingQuery
+
+<ResponseField name="getKey()" type="string" required>
+  The setting key being queried.
+</ResponseField>
+
+<ResponseField name="getCategory()" type="SettingCategory" required>
+  The category of the setting.
+</ResponseField>
+
+<ResponseField name="getMetadataTags()" type="ISettingMetadata[]" required>
+  Additional metadata tags associated with the query.
+</ResponseField>
+
+### ISettingMetadata
+
+<ResponseField name="getName()" type="string" required>
+  The metadata tag name.
+</ResponseField>
+
+<ResponseField name="getValue()" type="string" required>
+  The metadata tag value.
+</ResponseField>
+
+### ISettingResponse
+
+<ResponseField name="getKey()" type="string" required>
+  The setting key.
+</ResponseField>
+
+<ResponseField name="getCurrentValue()" type="string" required>
+  The current value of the setting.
+</ResponseField>
+
+<ResponseField name="getValueType()" type="SettingValueType" required>
+  The data type of the setting value.
+</ResponseField>
+
+<ResponseField name="isReadOnly()" type="boolean" required>
+  Whether the setting is read-only.
+</ResponseField>
+
+### ISettingUpdateRequest
+
+<ResponseField name="getKey()" type="string" required>
+  The setting key to update.
+</ResponseField>
+
+<ResponseField name="getNewValue()" type="string" required>
+  The new value to set.
+</ResponseField>
+
+<ResponseField name="getCategory()" type="SettingCategory" required>
+  The category of the setting.
+</ResponseField>
+
+<ResponseField name="getUpdateOptions()" type="IUpdateOptions | null" required>
+  Optional update behavior configuration.
+</ResponseField>
+
+### IUpdateOptions
+
+<ResponseField name="getPersistAcrossReboot()" type="boolean" required>
+  Whether the change should survive a device restart.
+</ResponseField>
+
+<ResponseField name="getNotifyListeners()" type="boolean" required>
+  Whether other components should be notified of the change.
+</ResponseField>
+
+<ResponseField name="getChangeReason()" type="string | null" required>
+  A human-readable reason for the change.
+</ResponseField>
+
+### IUpdateResult
+
+<ResponseField name="getStatus()" type="UpdateResultStatus" required>
+  The result status code.
+</ResponseField>
+
+<ResponseField name="getMessage()" type="string" required>
+  A detail message describing the result.
+</ResponseField>
+
+### IUpdateResultBuilder
+
+Builder pattern for constructing `IUpdateResult` instances.
+
+<ResponseField name="updateStatus(status)" type="IUpdateResultBuilder" required>
+  Sets the result status. Required before calling `build()`.
+</ResponseField>
+
+<ResponseField name="detailMessage(message)" type="IUpdateResultBuilder">
+  Sets an optional detail message. Max 8192 characters.
+</ResponseField>
+
+<ResponseField name="build()" type="IUpdateResult" required>
+  Constructs the result. Throws `SettingsValidationError` if status is not set.
+</ResponseField>
+
+### ISettingFilter
+
+<ResponseField name="getKeyPrefix()" type="string | null" required>
+  Filter settings whose key starts with this prefix.
+</ResponseField>
+
+<ResponseField name="getValueTypes()" type="SettingValueType[]" required>
+  Filter by value types.
+</ResponseField>
+
+<ResponseField name="getIncludeReadOnly()" type="boolean" required>
+  Whether to include read-only settings.
+</ResponseField>
+
+### ISettingEntry
+
+<ResponseField name="getKey()" type="string" required>
+  The setting key.
+</ResponseField>
+
+<ResponseField name="getDisplayName()" type="string" required>
+  Human-readable display name.
+</ResponseField>
+
+<ResponseField name="getCurrentValue()" type="string" required>
+  The current value.
+</ResponseField>
+
+<ResponseField name="getDefaultValue()" type="string" required>
+  The factory default value.
+</ResponseField>
+
+<ResponseField name="getValueType()" type="SettingValueType" required>
+  The data type.
+</ResponseField>
+
+<ResponseField name="getCategory()" type="SettingCategory" required>
+  The setting category.
+</ResponseField>
+
+<ResponseField name="isReadOnly()" type="boolean" required>
+  Whether the setting is read-only.
+</ResponseField>
+
+<ResponseField name="getConstraints()" type="ISettingConstraints | null" required>
+  Value constraints, if any.
+</ResponseField>
+
+### ISettingConstraints
+
+<ResponseField name="getMinValue()" type="number | null" required>
+  Minimum allowed value (for `RANGE` type).
+</ResponseField>
+
+<ResponseField name="getMaxValue()" type="number | null" required>
+  Maximum allowed value (for `RANGE` type).
+</ResponseField>
+
+<ResponseField name="getStepValue()" type="number | null" required>
+  Step increment (for `RANGE` type).
+</ResponseField>
+
+<ResponseField name="getAllowedValues()" type="string[]" required>
+  List of allowed values (for `ENUM` type).
+</ResponseField>

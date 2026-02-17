@@ -1,0 +1,114 @@
+---
+title: "Error Handling"
+description: "Understanding and handling errors in the Device Settings module."
+---
+
+The module defines three error classes, each for a different failure scenario.
+
+## Error types
+
+<AccordionGroup>
+  <Accordion title="SettingsValidationError" icon="triangle-exclamation" defaultOpen={true}>
+    Thrown when input validation fails. Common causes:
+
+    - Calling `build()` on `IUpdateResultBuilder` without setting a status
+    - Detail message exceeding the 8192 character limit
+    - Passing `null`/`undefined` as a component instance to `setHandlerForComponent`
+
+    ```typescript
+    import { SettingsValidationError } from '@amzn/folklore-device-settings-manager';
+
+    try {
+      const result = component.makeUpdateResultBuilder().build(); // No status set
+    } catch (e) {
+      if (e instanceof SettingsValidationError) {
+        console.error('Validation failed:', e.message);
+      }
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="SettingNotFoundError" icon="magnifying-glass">
+    Available for your handler to throw when a requested setting key doesn't exist. The module itself does not throw this error — it's provided as a convenience for handler implementations.
+
+    ```typescript
+    import { SettingNotFoundError } from '@amzn/folklore-device-settings-manager';
+
+    async handleGetSetting(query: ISettingQuery): Promise<ISettingResponse> {
+      const setting = myStore.get(query.getKey());
+      if (!setting) {
+        throw new SettingNotFoundError(`Unknown setting: ${query.getKey()}`);
+      }
+      // ...
+    }
+    ```
+  </Accordion>
+
+  <Accordion title="DeviceSettingsInternalError" icon="gear">
+    Thrown when the native layer fails to initialize or communicate. This typically indicates a platform-level issue rather than an application error.
+
+    Common causes:
+    - The APMF device settings component is not available on the device
+    - The native server failed to initialize
+    - Communication between TypeScript and native layers broke down
+
+    ```typescript
+    import { DeviceSettingsInternalError } from '@amzn/folklore-device-settings-manager';
+
+    try {
+      const server = component.getOrMakeServer();
+    } catch (e) {
+      if (e instanceof DeviceSettingsInternalError) {
+        console.error('Native layer failure:', e.message);
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Native error codes
+
+The native C++ layer uses two internal error codes when rejecting promises:
+
+| Code | Constant | Meaning |
+|------|----------|---------|
+| `1` | `INTERNAL_ERROR` | A platform or communication failure |
+| `2` | `VALIDATION_ERROR` | Input validation failed on the native side |
+
+Both are surfaced as `DeviceSettingsInternalError` on the TypeScript side. The original error message is included in the exception's `message` property.
+
+## Best practices
+
+<Tabs>
+  <Tab title="Handler errors">
+    - Use `UpdateResultStatus` codes to communicate expected failures (key not found, invalid value, permission denied) rather than throwing exceptions
+    - Reserve thrown exceptions for truly unexpected situations
+    - Always provide a meaningful detail message with `detailMessage()` on the result builder
+
+    ```typescript
+    // Preferred: use status codes for expected failures
+    return builder
+      .updateStatus(UpdateResultStatus.INVALID_VALUE)
+      .detailMessage('Brightness must be between 0 and 100')
+      .build();
+    ```
+  </Tab>
+
+  <Tab title="Initialization errors">
+    - Wrap `getOrMakeServer()` in a try/catch to handle native initialization failures
+    - Log the error and provide a fallback or user-facing message
+    - Consider retrying once if the error is transient
+
+    ```typescript
+    let server: IDeviceSettingsServer;
+    try {
+      server = component.getOrMakeServer();
+    } catch (e) {
+      if (e instanceof DeviceSettingsInternalError) {
+        console.error('Failed to initialize device settings:', e.message);
+        // Show fallback UI or retry
+      }
+    }
+    ```
+  </Tab>
+</Tabs>

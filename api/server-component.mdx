@@ -1,0 +1,78 @@
+---
+title: "DeviceSettingsServerComponent"
+description: "Factory class and concrete implementations that bridge the public API with the native turbo-module."
+---
+
+Source: `src/turbo-modules/DeviceSettingsServerComponent.ts`
+
+The `DeviceSettingsServerComponent` is the main entry point for the Device Settings module. It provides factory methods for obtaining the server singleton and building response objects.
+
+## DeviceSettingsServerComponent
+
+```typescript
+import { DeviceSettingsServerComponent } from '@amzn/folklore-device-settings-manager';
+
+const component = new DeviceSettingsServerComponent();
+```
+
+### Methods
+
+<ResponseField name="getOrMakeServer()" type="IDeviceSettingsServer" required>
+  Returns the singleton `IDeviceSettingsServer` instance, creating it and initializing the native layer if necessary. The first call triggers `setupDeviceSettingsServer()` on the native turbo-module.
+</ResponseField>
+
+<ResponseField name="makeUpdateResultBuilder()" type="IUpdateResultBuilder" required>
+  Creates a new builder for constructing `IUpdateResult` instances. Use this in your `handleUpdateSetting` implementation.
+</ResponseField>
+
+### Static methods
+
+<ResponseField name="getMajorVersion()" type="number">
+  Returns `1`.
+</ResponseField>
+
+<ResponseField name="getMinorVersion()" type="number">
+  Returns `0`.
+</ResponseField>
+
+<ResponseField name="getPatchVersion()" type="number">
+  Returns `0`.
+</ResponseField>
+
+## How it works
+
+The server component manages the lifecycle of the native bridge:
+
+<Steps>
+  <Step title="First call to getOrMakeServer()">
+    Creates a new `DeviceSettingsServer` instance and calls `FolkloreScriptDeviceSettings.setupDeviceSettingsServer()` to initialize the native APMF component.
+  </Step>
+  <Step title="Handler registration">
+    When you call `setHandler()` on the returned server, it registers three internal callbacks with the native turbo-module — one each for get, update, and list operations.
+  </Step>
+  <Step title="Request processing">
+    Each internal callback converts the native wire types (`IInternalSettingQuery`, etc.) into public interface wrappers (`SettingQuery`, etc.) before calling your handler.
+  </Step>
+  <Step title="Response serialization">
+    Your handler's response is converted back to internal wire types and sent to the native layer via `handleXxxResponse()` methods.
+  </Step>
+</Steps>
+
+## Internal wrapper classes
+
+The server component contains several private wrapper classes that convert between internal wire types and public interfaces. These are not exported but are important for understanding the data flow:
+
+| Internal Class | Implements | Purpose |
+|---------------|------------|---------|
+| `SettingQuery` | `ISettingQuery` | Wraps `IInternalSettingQuery` with getter methods |
+| `SettingMetadata` | `ISettingMetadata` | Wraps `IInternalSettingMetadata` |
+| `SettingUpdateRequest` | `ISettingUpdateRequest` | Wraps `IInternalSettingUpdateRequest` |
+| `UpdateOptions` | `IUpdateOptions` | Wraps `IInternalUpdateOptions` |
+| `SettingFilter` | `ISettingFilter` | Wraps `IInternalSettingFilter` |
+| `SettingResponse` | `ISettingResponse` | Wraps response data |
+| `UpdateResult` | `IUpdateResult` | Wraps result data |
+| `UpdateResultBuilder` | `IUpdateResultBuilder` | Builder with validation (max 8192 char message) |
+
+<Warning>
+  The `UpdateResultBuilder.build()` method throws `SettingsValidationError` if `updateStatus()` has not been called, and if the detail message exceeds 8192 characters.
+</Warning>

@@ -1,0 +1,217 @@
+---
+title: "Internal Types"
+description: "Wire types used for communication between the TypeScript layer and the native C++ turbo-module."
+---
+
+Source: `src/turbo-modules/InternalTypes.ts`
+
+<Warning>
+  These types are internal to the package and should not be used directly by application code. They exist to match the JSON serialization format used by the native bridge.
+</Warning>
+
+Internal types mirror the public API but use plain data properties instead of getter methods. This is because the native bridge serializes data as flat JSON objects.
+
+## Comparison with public types
+
+<Tabs>
+  <Tab title="Public (getter-based)">
+    ```typescript
+    // Used by application code
+    interface ISettingQuery {
+      getKey(): string;
+      getCategory(): SettingCategory;
+      getMetadataTags(): ISettingMetadata[];
+    }
+    ```
+  </Tab>
+  <Tab title="Internal (property-based)">
+    ```typescript
+    // Used by the native bridge
+    interface IInternalSettingQuery {
+      key: string;
+      category: SettingCategory;
+      metadataTags: IInternalSettingMetadata[];
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Request types
+
+### IInternalSettingQuery
+
+<ResponseField name="key" type="string" required>
+  The setting key being queried.
+</ResponseField>
+
+<ResponseField name="category" type="SettingCategory" required>
+  The category of the setting.
+</ResponseField>
+
+<ResponseField name="metadataTags" type="IInternalSettingMetadata[]" required>
+  Metadata tags associated with the query.
+</ResponseField>
+
+### IInternalSettingMetadata
+
+<ResponseField name="name" type="string" required>
+  The metadata tag name.
+</ResponseField>
+
+<ResponseField name="value" type="string" required>
+  The metadata tag value.
+</ResponseField>
+
+### IInternalSettingUpdateRequest
+
+<ResponseField name="key" type="string" required>
+  The setting key to update.
+</ResponseField>
+
+<ResponseField name="newValue" type="string" required>
+  The new value to set.
+</ResponseField>
+
+<ResponseField name="category" type="SettingCategory" required>
+  The category of the setting.
+</ResponseField>
+
+<ResponseField name="updateOptions" type="IInternalUpdateOptions | null" required>
+  Optional update behavior configuration.
+</ResponseField>
+
+### IInternalUpdateOptions
+
+<ResponseField name="persistAcrossReboot" type="boolean" required>
+  Whether the change survives a device restart.
+</ResponseField>
+
+<ResponseField name="notifyListeners" type="boolean" required>
+  Whether other components should be notified.
+</ResponseField>
+
+<ResponseField name="changeReason" type="string | null" required>
+  Human-readable reason for the change.
+</ResponseField>
+
+### IInternalSettingFilter
+
+<ResponseField name="keyPrefix" type="string | null" required>
+  Filter by key prefix.
+</ResponseField>
+
+<ResponseField name="valueTypes" type="SettingValueType[]" required>
+  Filter by value types.
+</ResponseField>
+
+<ResponseField name="includeReadOnly" type="boolean" required>
+  Whether to include read-only settings.
+</ResponseField>
+
+## Response types
+
+### IInternalSettingResponse
+
+<ResponseField name="key" type="string" required>
+  The setting key.
+</ResponseField>
+
+<ResponseField name="currentValue" type="string" required>
+  The current value.
+</ResponseField>
+
+<ResponseField name="valueType" type="SettingValueType" required>
+  The data type.
+</ResponseField>
+
+<ResponseField name="readOnly" type="boolean" required>
+  Whether the setting is read-only.
+</ResponseField>
+
+### IInternalUpdateResult
+
+<ResponseField name="status" type="UpdateResultStatus" required>
+  The result status code.
+</ResponseField>
+
+<ResponseField name="message" type="string" required>
+  Detail message.
+</ResponseField>
+
+### IInternalSettingEntry
+
+<ResponseField name="key" type="string" required>
+  The setting key.
+</ResponseField>
+
+<ResponseField name="displayName" type="string" required>
+  Human-readable name.
+</ResponseField>
+
+<ResponseField name="currentValue" type="string" required>
+  Current value.
+</ResponseField>
+
+<ResponseField name="defaultValue" type="string" required>
+  Factory default value.
+</ResponseField>
+
+<ResponseField name="valueType" type="SettingValueType" required>
+  Data type.
+</ResponseField>
+
+<ResponseField name="category" type="SettingCategory" required>
+  Setting category.
+</ResponseField>
+
+<ResponseField name="readOnly" type="boolean" required>
+  Whether read-only.
+</ResponseField>
+
+<ResponseField name="constraints" type="IInternalSettingConstraints | null" required>
+  Value constraints.
+</ResponseField>
+
+### IInternalSettingConstraints
+
+<ResponseField name="minValue" type="number | null" required>
+  Minimum allowed value.
+</ResponseField>
+
+<ResponseField name="maxValue" type="number | null" required>
+  Maximum allowed value.
+</ResponseField>
+
+<ResponseField name="stepValue" type="number | null" required>
+  Step increment.
+</ResponseField>
+
+<ResponseField name="allowedValues" type="string[]" required>
+  Allowed enum values.
+</ResponseField>
+
+## Concrete classes
+
+The file also exports two concrete classes used for serializing responses back to native:
+
+### InternalUpdateResultImpl
+
+```typescript
+export class InternalUpdateResultImpl implements IInternalUpdateResult {
+  status: UpdateResultStatus;
+  message: string;
+  constructor(status: UpdateResultStatus, message: string);
+}
+```
+
+### InternalSettingResponseImpl
+
+```typescript
+export class InternalSettingResponseImpl implements IInternalSettingResponse {
+  key: string;
+  currentValue: string;
+  valueType: SettingValueType;
+  readOnly: boolean;
+  constructor(key: string, currentValue: string, valueType: SettingValueType, readOnly: boolean);
+}
+```

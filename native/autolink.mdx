@@ -1,0 +1,55 @@
+---
+title: "AutoLink Registration"
+description: "How the turbo-module is registered with the Folklore runtime."
+---
+
+Source: `folklore/AutoLinkInit.cpp`
+
+The `AutoLinkInit.cpp` file registers the `FolkloreScriptDeviceSettings` turbo-module with the Folklore runtime so it can be discovered and loaded by the JavaScript layer.
+
+## Registration code
+
+```cpp
+#include <Folklore/turbomodule/FolkloreTurboModuleRegistration.h>
+#include "turbo-modules/FolkloreScriptDeviceSettings.h"
+
+extern "C" {
+__attribute__((visibility("default"))) void autoLinkFolkloreTurboModulesV1() noexcept {
+    using namespace com::amazon::folklore::turbomodule;
+    FOLKLORE_REGISTER_TURBO_MODULE_WITH_NAME(
+        "FolkloreDeviceSettingsManager", FolkloreScriptDeviceSettings);
+}
+}
+```
+
+## How it works
+
+<Steps>
+  <Step title="Shared library loaded">
+    When the Folklore runtime loads the `FolkloreDeviceSettingsManager` shared library, it looks for the `autoLinkFolkloreTurboModulesV1` symbol.
+  </Step>
+  <Step title="Registration macro invoked">
+    `FOLKLORE_REGISTER_TURBO_MODULE_WITH_NAME` registers the C++ class `FolkloreScriptDeviceSettings` under the string name `"FolkloreDeviceSettingsManager"`.
+  </Step>
+  <Step title="TypeScript discovery">
+    On the TypeScript side, `TurboModuleRegistry.getEnforcing('FolkloreDeviceSettingsManager')` looks up this registered name and returns a proxy to the native module.
+  </Step>
+</Steps>
+
+<Info>
+  The registration name `"FolkloreDeviceSettingsManager"` must match exactly between `AutoLinkInit.cpp` and the `TurboModuleRegistry.getEnforcing()` call in `FolkloreScriptDeviceSettings.ts`.
+</Info>
+
+## Shared library name
+
+The shared library name is configured in `package.json` under the `folklore` key:
+
+```json
+{
+  "folklore": {
+    "folkloreInitializationSharedLibrary": "FolkloreDeviceSettingsManager"
+  }
+}
+```
+
+This tells the Folklore runtime which `.so` file to load for this turbo-module.

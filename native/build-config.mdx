@@ -1,0 +1,114 @@
+---
+title: "Build Configuration"
+description: "CMake and Brazil build configuration for the native turbo-module."
+---
+
+## CMakeLists.txt
+
+The native build is configured with CMake 3.22+ using C++17:
+
+```cmake
+cmake_minimum_required(VERSION 3.22)
+
+set(PACKAGE_NAME folklorescript-folklore-device-settings-manager-lib-1)
+
+project(${PACKAGE_NAME} VERSION 1.0 LANGUAGES CXX C)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+```
+
+### Source files
+
+```cmake
+set(HEADERS
+  folklore/turbo-modules/FolkloreScriptDeviceSettings.h
+)
+set(SOURCES
+  folklore/turbo-modules/FolkloreScriptDeviceSettings.cpp
+  folklore/AutoLinkInit.cpp
+)
+```
+
+### Dependencies
+
+The native build depends on three external packages:
+
+| Package | Purpose |
+|---------|---------|
+| `Apmf` | Amazon Platform Middleware Framework — core platform interfaces |
+| `Folklore` | Folklore OS runtime libraries and IDL import macros |
+| `turbomoduleAPI` | TurboModule base class and registration infrastructure |
+
+```cmake
+find_package(Apmf REQUIRED)
+find_package(Folklore REQUIRED)
+find_package(turbomoduleAPI CONFIG REQUIRED)
+```
+
+### IDL imports
+
+The APMF interface definitions are imported via the `folklore_add_idl_import_library` macro:
+
+```cmake
+folklore_add_idl_import_library(
+  idl_pkg
+  PACKAGES
+  com.amazon.apmf
+  com.amazon.folklore.device.settings
+)
+```
+
+This generates the C++ headers for the APMF interfaces used by the implementation (e.g., `IDeviceSettingsServerAsync`, `ISettingQuery`, `ISettingResponseListener`).
+
+### Library target
+
+```cmake
+folklore_add_library(${PROJECT_NAME} SHARED ${HEADERS} ${SOURCES})
+target_link_libraries(${PROJECT_NAME} PRIVATE turbomoduleAPI::turbomoduleAPI idl_pkg)
+```
+
+The output is a shared library (`.so`) that gets loaded by the Folklore runtime.
+
+## Brazil Config
+
+The package uses the `folklore-build` build system with the following key dependencies:
+
+<Tabs>
+  <Tab title="Build tools">
+    | Package | Version | Purpose |
+    |---------|---------|---------|
+    | `FolkloreUIReact-Hermes` | `0.72.x_vodka` | React Native with Hermes engine |
+    | `FolkloreCLIBuildTool` | `2.0` | Folklore CLI build toolchain |
+    | `Vodka` | `1.2` | Cross-compilation toolchain |
+    | `VodkaClang*` | `1.2` | Clang compilers for armv7, x86_64, aarch64 |
+    | `VodkaSysroot*` | `1.0` | Sysroot artifacts for target architectures |
+  </Tab>
+
+  <Tab title="Dependencies">
+    | Package | Version | Purpose |
+    |---------|---------|---------|
+    | `FolkloreUIReact` | `2.x` | Core React Native for Folklore |
+    | `FolkloreUIReact-CommonBundle` | `1.x_vodka` | Common bundle dependencies |
+    | `FolkloreDeviceSettingsInterface` | `1.0` | APMF interface definitions |
+    | `FolkloreAppFrameworkInterface` | `1.0` | Application framework interfaces |
+    | `FolkloreUIReact-TurboModuleAPI` | `1.x_vodka_libstdcpp` | TurboModule API headers |
+    | `FolkloreTypedocPlugin` | `1.0` | Documentation generation |
+  </Tab>
+
+  <Tab title="Target platforms">
+    Configured in `package.json`:
+
+    ```json
+    {
+      "folklore": {
+        "targets": [
+          "4kmax_g1_folklore",
+          "ref_8295",
+          "sim_tv_x86_64"
+        ]
+      }
+    }
+    ```
+  </Tab>
+</Tabs>
