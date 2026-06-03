@@ -54,6 +54,18 @@
               "reference/interfaces",
               "reference/errors"
             ]
+          },
+          {
+            "group": "Scout Frontmatter Test",
+            "pages": [
+              "scout-test/what-is-it",
+              "scout-test/what-is-it-with-title",
+              "scout-test/how-to-build",
+              "scout-test/how-to-test",
+              "scout-test/how-to-write-code",
+              "scout-test/how-to-use-me",
+              "scout-test/how-to-debug"
+            ]
           }
         ]
       }

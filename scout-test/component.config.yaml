@@ -1,0 +1,13 @@
+component_name: FolkloreContentService
+last_context_commit: a3f7c2e1b4d6
+last_reviewed_commit: a3f7c2e1b4d6
+generation_model: claude-opus-4-20250514
+generation_date: "2026-05-28T14:32:00Z"
+topics:
+  - what-is-it
+  - how-to-build
+  - how-to-test
+  - how-to-write-code
+  - how-to-use-me
+  - how-to-debug
+status: fresh
